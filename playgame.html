@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WORDLE</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    body {
+      background-color: #0f0f1a;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 8px),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 8px);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      font-family: 'Press Start 2P', monospace;
+      color: #e8e8e8;
+    }
+
+        /* ── HOME BUTTON ── */
+    #home-btn {
+      display: inline-block;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      color: #888;
+      text-decoration: none;
+      letter-spacing: 2px;
+      margin-bottom: 0.75rem;
+    }
+    #home-btn:hover { color: #f7d94c; }
+ 
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      border-bottom: 4px solid #f7d94c;
+      padding-bottom: 1rem;
+      width: 100%;
+      max-width: 420px;
+    }
+ 
+    header h1 {
+      font-size: 22px;
+      color: #f7d94c;
+      text-shadow: 3px 3px 0px #a07c00;
+      letter-spacing: 4px;
+      margin-bottom: 0.5rem;
+    }
+ 
+    header p {
+      font-size: 7px;
+      color: #888;
+      letter-spacing: 2px;
+    }
+ 
+    /* ── MAIN CONTAINER ── */
+    .game-container {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+ 
+    /* ── GRID ── */
+    #grid {
+      display: grid;
+      grid-template-rows: repeat(6, 62px);
+      grid-template-columns: repeat(5, 62px);
+      gap: 6px;
+    }
+ 
+    .tile {
+      width: 62px;
+      height: 62px;
+      border: 4px solid #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-family: 'Press Start 2P', monospace;
+      color: #e8e8e8;
+      text-transform: uppercase;
+      background: #1a1a2e;
+    }
+ 
+    .tile.active  { border-color: #f7d94c; }
+    .tile.correct { background: #3a7d44; border-color: #5cba6a; color: #fff; }
+    .tile.present { background: #b5860d; border-color: #f7d94c; color: #fff; }
+    .tile.absent  { background: #333;    border-color: #555;    color: #888; }
+ 
+    /* ── MESSAGE ── */
+    #message {
+      font-size: 8px;
+      color: #f7d94c;
+      letter-spacing: 2px;
+      text-align: center;
+      min-height: 20px;
+      text-shadow: 2px 2px 0 #a07c00;
+    }
+ 
+    /* ── KEYBOARD ── */
+    #keyboard {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+    }
+ 
+    .kb-row {
+      display: flex;
+      gap: 5px;
+    }
+ 
+    .key {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      width: 36px;
+      height: 36px;
+      background: #2a2a3e;
+      border: 3px solid #555;
+      color: #e8e8e8;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      user-select: none;
+    }
+ 
+    .key:hover { border-color: #f7d94c; }
+    .key.wide  { width: 54px; font-size: 7px; }
+    .key.correct { background: #3a7d44; border-color: #5cba6a; color: #fff; }
+    .key.present { background: #b5860d; border-color: #f7d94c; color: #fff; }
+    .key.absent  { background: #222;    border-color: #333;    color: #555; }
+ 
+    /* ── NEW GAME BUTTON ── */
+    #btn-new {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 10px 20px;
+      background: #0f0f1a;
+      border: 3px solid #f7d94c;
+      color: #f7d94c;
+      cursor: pointer;
+      letter-spacing: 2px;
+      display: none;
+    }
+    #btn-new:hover { background: #f7d94c; color: #0f0f1a; }
+  </style>
+</head>
+<body>
+ 
+  <header>
+    <a href="scratchpage.html" id="home-btn">◀ HOME</a>
+    <h1>★ TORDLE ★</h1>
+  </header>
+ 
+  <div class="game-container">
+    <div id="grid"></div>
+    <div id="message"></div>
+    <div id="keyboard"></div>
+    <button id="btn-new" onclick="newGame()">▶ PLAY AGAIN</button>
+  </div>
+ 
+  <script>
+    const WORDS = [
+      'CRANE','SLATE','POINT','BRAVE','FLOCK','GHOST','PLUMB','TWINS','CRISP','BLAZE',
+      'GROAN','PIVOT','QUEST','SWIFT','DWARF','KNEEL','PIXEL','STORM','YACHT','FROZE',
+      'CHUNK','GLOBE','TROVE','BLUNT','CHIRP','SNOWY','PRISM','FLASK','GRAZE','FLINT',
+      'CRANK','STOMP','PLUCK','GROVE','BLAST','CREST','GLYPH','SCOUT','THUMP','BRISK',
+      'CLASP','STOVE','QUILL','FLANK','PROWL','GLINT','SHRED','TWIRL','PLAID','STAMP',
+      'CROOK','SCALP','TRAMP','WRING','BLOAT','CLUNG','SHRUB','FROWN','GLOOM','SPUNK'
+    ];
+ 
+    const ROWS = 6, COLS = 5;
+    let secret = '', currentRow = 0, currentCol = 0, currentGuess = [], gameOver = false;
+ 
+    // ── Build grid ──
+    function buildGrid() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const tile = document.createElement('div');
+          tile.classList.add('tile');
+          tile.id = `tile-${r}-${c}`;
+          grid.appendChild(tile);
+        }
+      }
+    }
+ 
+    // ── Build on-screen keyboard ──
+    const KB_ROWS = [
+      ['Q','W','E','R','T','Y','U','I','O','P'],
+      ['A','S','D','F','G','H','J','K','L'],
+      ['ENTER','Z','X','C','V','B','N','M','⌫']
+    ];
+ 
+    function buildKeyboard() {
+      const kb = document.getElementById('keyboard');
+      kb.innerHTML = '';
+      KB_ROWS.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.classList.add('kb-row');
+        row.forEach(key => {
+          const btn = document.createElement('div');
+          btn.classList.add('key');
+          if (key === 'ENTER' || key === '⌫') btn.classList.add('wide');
+          btn.textContent = key;
+          btn.id = `key-${key}`;
+          btn.addEventListener('click', () => handleKey(key));
+          rowDiv.appendChild(btn);
+        });
+        kb.appendChild(rowDiv);
+      });
+    }
+ 
+    // ── New game ──
+    function newGame() {
+      secret = WORDS[Math.floor(Math.random() * WORDS.length)];
+      currentRow = 0; currentCol = 0; currentGuess = []; gameOver = false;
+      buildGrid();
+      buildKeyboard();
+      document.getElementById('message').textContent = '';
+      document.getElementById('btn-new').style.display = 'none';
+      highlightRow();
+    }
+ 
+    // ── Highlight current row ──
+    function highlightRow() {
+      for (let c = 0; c < COLS; c++) {
+        document.getElementById(`tile-${currentRow}-${c}`)?.classList.add('active');
+      }
+    }
+ 
+    // ── Handle a key press ──
+    function handleKey(key) {
+      if (gameOver) return;
+ 
+      if (key === '⌫' || key === 'Backspace') {
+        if (currentCol > 0) {
+          currentCol--;
+          currentGuess.pop();
+          const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
+          tile.textContent = '';
+        }
+        return;
+      }
+ 
+      if (key === 'ENTER' || key === 'Enter') {
+        if (currentCol < COLS) {
+          showMessage('NOT ENOUGH LETTERS');
+          return;
+        }
+        submitGuess();
+        return;
+      }
+ 
+      if (/^[A-Z]$/.test(key) && currentCol < COLS) {
+        const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
+        tile.textContent = key;
+        currentGuess.push(key);
+        currentCol++;
+      }
+    }
+ 
+    // ── Submit a guess ──
+    function submitGuess() {
+      const guess = currentGuess.join('');
+ 
+      // Score the guess
+      const result = Array(COLS).fill('absent');
+      const secretArr = secret.split('');
+      const guessArr = guess.split('');
+ 
+      // First pass: correct
+      guessArr.forEach((l, i) => {
+        if (l === secretArr[i]) { result[i] = 'correct'; secretArr[i] = null; guessArr[i] = null; }
+      });
+      // Second pass: present
+      guessArr.forEach((l, i) => {
+        if (!l) return;
+        const idx = secretArr.indexOf(l);
+        if (idx !== -1) { result[i] = 'present'; secretArr[idx] = null; }
+      });
+ 
+      // Apply colors to tiles
+      result.forEach((state, i) => {
+        const tile = document.getElementById(`tile-${currentRow}-${i}`);
+        tile.classList.remove('active');
+        tile.classList.add(state);
+        // Update keyboard key
+        const keyEl = document.getElementById(`key-${guess[i]}`);
+        if (keyEl) {
+          if (state === 'correct') keyEl.className = 'key correct';
+          else if (state === 'present' && !keyEl.classList.contains('correct')) keyEl.className = 'key present';
+          else if (state === 'absent' && !keyEl.classList.contains('correct') && !keyEl.classList.contains('present')) keyEl.className = 'key absent';
+        }
+      });
+ 
+      if (guess === secret) {
+        const msgs = ['GENIUS!', 'NICE ONE!', 'YOU WIN!', 'PERFECT!'];
+        showMessage(msgs[Math.floor(Math.random() * msgs.length)]);
+        endGame();
+        return;
+      }
+ 
+      currentRow++;
+      currentCol = 0;
+      currentGuess = [];
+ 
+      if (currentRow >= ROWS) {
+        showMessage(`GAME OVER · ${secret}`);
+        endGame();
+        return;
+      }
+ 
+      highlightRow();
+    }
+ 
+    function showMessage(msg) {
+      document.getElementById('message').textContent = msg;
+    }
+ 
+    function endGame() {
+      gameOver = true;
+      document.getElementById('btn-new').style.display = 'block';
+    }
+ 
+    // ── Physical keyboard ──
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Backspace') { handleKey('Backspace'); return; }
+      if (e.key === 'Enter')     { handleKey('Enter'); return; }
+      const letter = e.key.toUpperCase();
+      if (/^[A-Z]$/.test(letter)) handleKey(letter);
+    });
+ 
+    // ── Start ──
+    newGame();
+  </script>
+</html>
